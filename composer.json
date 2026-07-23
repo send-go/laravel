@@ -1,0 +1,32 @@
+{
+    "name": "sendgo/laravel",
+    "description": "Sendgo Laravel SDK — 카카오 알림톡/친구톡, SMS/LMS/MMS Laravel 통합",
+    "license": "MIT",
+    "keywords": ["sendgo", "kakao", "alimtalk", "laravel", "notification", "sms", "korea"],
+    "homepage": "https://sendgo.io",
+    "authors": [{"name": "Sendgo", "email": "dev@sendgo.io"}],
+    "require": {
+        "php": ">=8.2",
+        "sendgo/php": "^1.0",
+        "illuminate/support": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "orchestra/testbench": "^8.0|^9.0"
+    },
+    "autoload": {
+        "psr-4": {"Sendgo\\Laravel\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Sendgo\\Laravel\\Tests\\": "tests/"}
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Sendgo\\Laravel\\SendgoServiceProvider"],
+            "aliases": {"Sendgo": "Sendgo\\Laravel\\Facades\\Sendgo"}
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {"sort-packages": true}
+}
