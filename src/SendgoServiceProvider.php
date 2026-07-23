@@ -18,7 +18,7 @@ class SendgoServiceProvider extends ServiceProvider
                 'kakao_sender_key' => config('sendgo.kakao_sender_key'),
                 'sms_sender_key'   => config('sendgo.sms_sender_key'),
                 'api_version'      => config('sendgo.api_version', 'v2'),
-                'url'              => config('sendgo.url', 'https://api.sendgo.io'),
+                'url'              => config('sendgo.url', 'https://sendgo.io'),
             ]);
         });
 

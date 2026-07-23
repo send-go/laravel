@@ -413,7 +413,7 @@ try {
 | `kakao_sender_key` | `SENDGO_KAKAO_SENDER_KEY` | `null` | 카카오 발신프로필 키 |
 | `sms_sender_key` | `SENDGO_SMS_SENDER_KEY` | `null` | SMS 발신자 키 |
 | `api_version` | `SENDGO_API_VERSION` | `'v2'` | API 버전 |
-| `url` | `SENDGO_URL` | `'https://api.sendgo.io'` | API 기본 URL |
+| `url` | `SENDGO_URL` | `'https://sendgo.io'` | API 기본 URL |
 
 ---
 

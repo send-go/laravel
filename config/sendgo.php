@@ -23,5 +23,5 @@ return [
     |--------------------------------------------------------------------------
     */
     'api_version'      => env('SENDGO_API_VERSION', 'v2'),
-    'url'              => env('SENDGO_URL', 'https://api.sendgo.io'),
+    'url'              => env('SENDGO_URL', 'https://sendgo.io'),
 ];
