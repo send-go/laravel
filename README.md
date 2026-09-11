@@ -23,6 +23,7 @@ ServiceProvider 자동 등록, Facade, Config 게시 등 Laravel 통합을 완�
   - [SMS / LMS / MMS](#sms--lms--mms)
 - [서비스 클래스 패턴](#서비스-클래스-패턴)
 - [Notification Channel](#notification-channel)
+- [관리 API](#관리-api--채널템플릿발신번호-등록-v2-전용)
 - [Queue / Job 비동기 발송](#queue--job-비동기-발송)
 - [예외 처리](#예외-처리)
 - [설정 옵션](#설정-옵션)
@@ -37,6 +38,8 @@ composer require sendgo/laravel
 ```
 
 Laravel의 패키지 자동 검색(Package Auto-Discovery)으로 ServiceProvider와 Facade가 자동 등록됩니다.
+
+지원 버전은 **Laravel 10 · 11 · 12 · 13** 입니다.
 
 ---
 
@@ -296,6 +299,19 @@ $this->app->bind(NotificationService::class, function ($app) {
 
 ## Notification Channel
 
+ServiceProvider 가 알림 채널 세 개를 등록합니다. 별도 설정 없이 `via()` 에
+채널 이름을 넣고, 같은 이름의 `to...()` 메서드에서 SDK 페이로드를 그대로
+반환하면 됩니다.
+
+| `via()` 이름 | 알림 객체 메서드 | 발송 채널 |
+| --- | --- | --- |
+| `sendgo_alimtalk` | `toSendgoAlimtalk()` | 카카오 알림톡 |
+| `sendgo_sms` | `toSendgoSms()` | SMS / LMS / MMS |
+| `sendgo_brand_message` | `toSendgoBrandMessage()` | 카카오 브랜드메시지 (v2 전용) |
+
+`to...()` 가 없거나 빈 배열을 반환하면 그 채널로는 발송하지 않습니다. 조건부로
+건너뛰고 싶을 때 쓰세요.
+
 ```php
 <?php
 // app/Notifications/OrderConfirmedNotification.php
@@ -477,7 +493,115 @@ A. `Sendgo\Php\Sendgo`를 Mockery나 PHPUnit Mock으로 교체하면 됩니다.
 사용 예시와 파라미터는 [코어 README](https://github.com/send-go) 와
 [SDK 가이드](https://sendgo.io/ko/sdk) 를 참고하세요.
 
+## 관리 API — 채널·템플릿·발신번호 등록 (v2 전용)
+
+콘솔에서만 되던 등록·심사를 파사드로 처리합니다. 코어(`sendgo/php`)의 서비스를
+그대로 노출하므로 파라미터는 코어와 같습니다.
+
+| 파사드 | 하는 일 | 계정 |
+| --- | --- | --- |
+| `Sendgo::kakaoSenders()` | 카카오 채널 인증·등록·동기화, 브랜드메시지 M/N 신청 | 기업 |
+| `Sendgo::noticeTemplates()` | 알림톡 템플릿 CRUD, 검수 요청·취소, 승인 취소, 휴면 해제 | 기업 |
+| `Sendgo::brandTemplates()` | 브랜드메시지 템플릿 CRUD, 동기화, 가져오기 | 기업 |
+| `Sendgo::senderRegistration()` | 발신번호 등록 신청, 중복 확인, 유형 안내 | 개인·기업 |
+| `Sendgo::messageTemplates()` | 문자 상용구 템플릿 CRUD | 개인·기업 |
+| `Sendgo::kakaoImages()` | 카카오 이미지 업로드 — 템플릿용 URL 발급 | 기업 |
+| `Sendgo::rejectedNumbers()` | 수신거부(080) 번호 조회 | 개인·기업 |
+| `Sendgo::webhook()` | 이벤트 웹훅 구독 — 심사 결과 수신 | 개인·기업 |
+
+> **sendgo.io 콘솔에 들어올 일이 없습니다.** 휴대폰 발신번호는 PASS 대신
+> 신분증 사본을 받아 sendgo 운영자가 대신 심사합니다. 사람이 개입하는 지점은
+> 카카오 채널 인증번호 하나뿐이고, 그것도 여러분 화면에서 입력받으면 됩니다.
+> 심사가 붙는 것들은 비동기라 웹훅으로 결과를 받으세요.
+
+```php
+use Sendgo\Laravel\Facades\Sendgo;
+
+// 카카오 채널 — 2단계
+Sendgo::kakaoSenders()->requestToken('@my-channel', '01012345678');
+$created = Sendgo::kakaoSenders()->create([
+    'token'        => $request->input('code'),   // 사용자가 문자로 받은 인증번호
+    'yellowId'     => '@my-channel',
+    'phoneNumber'  => '01012345678',
+    'categoryCode' => '001001',
+]);
+
+// 알림톡 템플릿 등록 → 검수 요청 → 폴링
+$template = Sendgo::noticeTemplates()->create([
+    'kakaoSenderKey'        => $created['data']['sender']['kakaoSenderKey'],
+    'templateName'          => '주문 접수 안내',
+    'templateContent'       => '#{name}님, 주문 #{orderNo}이 접수되었습니다.',
+    'templateMessageType'   => 'BA',
+    'templateEmphasizeType' => 'NONE',
+    'categoryCode'          => '001001',
+    'messagePurpose'        => 'order_delivery',
+    'legalBasis'            => 'transaction',
+    'benefitOrigin'         => 'none',
+    'expiryType'            => 'none',
+    'optInReviewConfirmed'  => true,
+    'ctaClearConfirmed'     => true,
+    'policyConfirmed'       => true,
+]);
+
+$code = $template['data']['template']['templateCode'];
+Sendgo::noticeTemplates()->requestInspection($code);
+
+// 승인 확인은 스케줄러에서 — 배포 파이프라인 안에서 기다리지 마세요
+$status = Sendgo::noticeTemplates()->sync($code)['data']['template']['inspectionStatus'];
+
+// 발신번호 등록 신청 (서류 첨부)
+Sendgo::senderRegistration()->create(
+    [
+        'senderAlias'      => '고객센터 대표번호',
+        'senderNumberType' => 'team_main',
+        'phoneE164'        => '02-1234-5678',
+    ],
+    ['csuCertificate' => $request->file('csu')->getRealPath()],
+);
+```
+
+스케줄러로 승인 여부를 확인하는 패턴:
+
+```php
+// routes/console.php
+Schedule::call(function () {
+    foreach (PendingTemplate::whereNull('approved_at')->get() as $pending) {
+        $result = Sendgo::noticeTemplates()->sync($pending->template_code);
+        $status = $result['data']['template']['inspectionStatus'];
+
+        if ($status === 'APR') {
+            $pending->update(['approved_at' => now()]);
+        } elseif ($status === 'REJ') {
+            $pending->update(['rejected_reason' => json_encode($result['data']['template']['comments'])]);
+        }
+    }
+})->everyThirtyMinutes();
+```
+
+전체 파라미터와 오류 코드는 [코어 README](https://github.com/send-go/php) 와
+[API 문서](https://sendgo.io/ko/applications/guide/v2) 를 참고하세요.
+
+---
+
 ## 변경 사항
+
+### 1.3.0 (2026-09-11)
+
+- **관리 API 파사드 노출** — `Sendgo::kakaoSenders()`, `Sendgo::noticeTemplates()`,
+  `Sendgo::brandTemplates()`, `Sendgo::senderRegistration()`,
+  `Sendgo::messageTemplates()`. 콘솔에서만 되던 등록·심사를 코드로 처리합니다.
+- **알림 채널을 실제로 등록했습니다.** README 는 처음부터 `via: ['sendgo_alimtalk']`
+  예시를 실었지만 채널 등록이 없어 문서대로 따라 하면
+  `Driver [sendgo_alimtalk] not supported.` 로 죽었습니다. 이제
+  `sendgo_alimtalk` · `sendgo_sms` · `sendgo_brand_message` 세 채널이 동작합니다.
+- **Laravel 13 지원** — `illuminate/support` 제약에 `^13.0` 을 더했습니다.
+  이전에는 Laravel 13 앱에서 설치 자체가 되지 않아 코어를 직접 바인딩해야 했습니다.
+- **이벤트 웹훅** 추가 — 발신번호 승인, 알림톡 검수 결과, 채널 차단,
+  브랜드메시지 타겟팅 결과를 구독해 받습니다. 서명은 받은 원본 바이트로
+  검증합니다(SDK 에 검증 헬퍼 포함).
+- **카카오 이미지 업로드** 추가 — 브랜드메시지 템플릿의 `imageUrl` 은 카카오가
+  호스팅하는 URL 이어야 하는데, 그 URL 을 얻는 길이 콘솔에만 있었습니다.
+- **수신거부(080) 조회** 추가 — 자기 DB 의 수신 상태를 맞출 수 있습니다.
 
 ### 1.2.1 (2026-08-14)
 

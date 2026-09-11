@@ -2,7 +2,11 @@
 
 namespace Sendgo\Laravel;
 
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
+use Sendgo\Laravel\Channels\SendgoAlimtalkChannel;
+use Sendgo\Laravel\Channels\SendgoBrandMessageChannel;
+use Sendgo\Laravel\Channels\SendgoSmsChannel;
 use Sendgo\Php\Sendgo;
 
 class SendgoServiceProvider extends ServiceProvider
@@ -32,6 +36,27 @@ class SendgoServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../config/sendgo.php' => config_path('sendgo.php'),
             ], 'sendgo-config');
+        }
+
+        $this->registerNotificationChannels();
+    }
+
+    /**
+     * `via: ['sendgo_alimtalk']` 을 실제로 동작하게 만든다.
+     *
+     * README 는 이 채널을 계속 예시로 실었는데 등록이 없어서, 문서대로 따라 한
+     * 사람은 "Driver [sendgo_alimtalk] not supported." 를 받았다.
+     */
+    protected function registerNotificationChannels(): void
+    {
+        $channels = [
+            'sendgo_alimtalk' => SendgoAlimtalkChannel::class,
+            'sendgo_sms' => SendgoSmsChannel::class,
+            'sendgo_brand_message' => SendgoBrandMessageChannel::class,
+        ];
+
+        foreach ($channels as $name => $channel) {
+            Notification::extend($name, fn ($app) => new $channel($app->make(Sendgo::class)));
         }
     }
 
