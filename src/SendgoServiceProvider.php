@@ -8,6 +8,7 @@ use Sendgo\Laravel\Channels\SendgoAlimtalkChannel;
 use Sendgo\Laravel\Channels\SendgoBrandMessageChannel;
 use Sendgo\Laravel\Channels\SendgoSmsChannel;
 use Sendgo\Php\Sendgo;
+use Sendgo\Php\AccountClient;
 
 class SendgoServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,11 @@ class SendgoServiceProvider extends ServiceProvider
                 'url'              => config('sendgo.url', 'https://sendgo.io'),
             ]);
         });
+
+        $this->app->singleton(AccountClient::class, fn () => new AccountClient(
+            (string) config('sendgo.agent_token', ''),
+            config('sendgo.url', 'https://sendgo.io'),
+        ));
 
         // Facade 별칭 바인딩
         $this->app->alias(Sendgo::class, 'sendgo');
@@ -62,6 +68,6 @@ class SendgoServiceProvider extends ServiceProvider
 
     public function provides(): array
     {
-        return [Sendgo::class, 'sendgo'];
+        return [Sendgo::class, AccountClient::class, 'sendgo'];
     }
 }
