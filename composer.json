@@ -7,7 +7,7 @@
     "authors": [{"name": "Sendgo", "email": "dev@sendgo.io"}],
     "require": {
         "php": ">=8.2",
-        "sendgo/php": "^1.4",
+        "sendgo/php": "^1.5",
         "illuminate/support": "^10.0|^11.0|^12.0|^13.0"
     },
     "require-dev": {

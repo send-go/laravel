@@ -11,6 +11,7 @@ use Sendgo\Php\KakaoImageService;
 use Sendgo\Php\KakaoSenderService;
 use Sendgo\Php\MessageTemplateService;
 use Sendgo\Php\NoticeTemplateService;
+use Sendgo\Php\TemplateFolderService;
 use Sendgo\Php\RejectedNumberService;
 use Sendgo\Php\SenderRegistrationService;
 use Sendgo\Php\ShortUrlService;
@@ -24,6 +25,7 @@ use Sendgo\Php\WebhookService;
  * @method static SmsService sms()
  * @method static ShortUrlService shortUrl() 짧은 URL — 링크 단축 + 클릭 반응 분석. v2 전용.
  * @method static KakaoSenderService kakaoSenders() 카카오 채널 등록·동기화. v2 전용, 기업 계정 전용.
+ * @method static TemplateFolderService templateFolders() 템플릿 공용 폴더 관리. v2 전용.
  * @method static NoticeTemplateService noticeTemplates() 알림톡 템플릿 CRUD·검수 요청. v2 전용, 기업 계정 전용.
  * @method static BrandTemplateService brandTemplates() 브랜드메시지 템플릿 CRUD. v2 전용, 기업 계정 전용.
  * @method static SenderRegistrationService senderRegistration() 발신번호 등록·심사 접수. v2 전용.
